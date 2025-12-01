@@ -1,0 +1,23 @@
+# AuroraAI Router - Python Dependencies
+
+# Core dependencies
+numpy>=1.21.0
+scikit-learn>=1.0.0
+sentence-transformers>=2.2.0
+
+# For profile creation/training
+pandas>=1.3.0
+polars>=0.19.0  # Fast dataframe library
+
+# Visualization (optional, for notebooks)
+matplotlib>=3.5.0
+seaborn>=0.12.0
+
+# Testing
+pytest>=7.0.0
+pytest-cov>=3.0.0
+
+# Development
+jupyter>=1.0.0
+jupyterlab>=3.0.0
+black>=22.0.0
