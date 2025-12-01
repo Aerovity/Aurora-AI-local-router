@@ -46,19 +46,22 @@ I created a notebook for you: `notebooks/COLAB_profiling.ipynb`
 1. Upload COLAB_profiling.ipynb
 2. Run all cells
 3. It will:
-   - Download benchmark dataset (Alpaca, MMLU, etc.)
-   - Run inference on all Cactus models
-   - Create 15 clusters
-   - Compute error rates per cluster per model
+   - Download MMLU dataset (15 diverse topics, ~1500 samples)
+   - Extract embeddings using Cactus models (Qwen2.5/Nomic/BGE)
+   - Test KMeans & HDBSCAN clustering (K=5-15)
+   - Run inference on all 12 Cactus models (simulated - replace with real calls)
+   - Compute per-cluster error rates for each model
+   - Generate UMAP visualizations and error rate heatmaps
    - Save: cactus_production_profile.json (3-5 KB!)
 4. Download the profile
 ```
 
 **What you get:**
 - ✅ `cactus_production_profile.json` (~3-5 KB)
-- ✅ Error rates for 8 Cactus models
-- ✅ 15 clusters for accurate routing
-- ✅ Tested on 1000+ real prompts
+- ✅ Error rates for 12 Cactus models (172MB - 1440MB)
+- ✅ Optimal clustering (automatically selected)
+- ✅ Tested on ~1500 MMLU samples across 15 topics
+- ✅ Uses actual Cactus embedding models (768-dim)
 
 #### **Step 2: Deploy to Mobile**
 
