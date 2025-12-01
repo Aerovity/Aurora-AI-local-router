@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Visualize how performance metrics are calculated.
 Shows step-by-step how we get:
@@ -8,10 +9,16 @@ Shows step-by-step how we get:
 - Battery savings
 """
 
+import sys
+import io
 import json
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
+
+# Fix Windows console encoding
+if sys.platform == 'win32':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
 # Model data
 CACTUS_MODELS = [
