@@ -1,0 +1,69 @@
+{
+  "metrics": {
+    "aurora_router": {
+      "quality": 43.0,
+      "avg_total_cost_mb": 541.05,
+      "avg_model_size_mb": 541.05,
+      "avg_routing_cost_mb": 0.0,
+      "avg_speed_ms": 15.055550999531988,
+      "efficiency": 7.947509472322337,
+      "cost_savings": 62.427083333333336
+    },
+    "gemma-1b-router": {
+      "quality": 73.0,
+      "avg_total_cost_mb": 1539.07,
+      "avg_model_size_mb": 897.07,
+      "avg_routing_cost_mb": 642.0,
+      "avg_speed_ms": 189.41271147256694,
+      "efficiency": 4.743124094420657,
+      "cost_savings": -6.879861111111106
+    },
+    "qwen-1.7b-router": {
+      "quality": 91.0,
+      "avg_total_cost_mb": 2050.57,
+      "avg_model_size_mb": 889.57,
+      "avg_routing_cost_mb": 1161.0,
+      "avg_speed_ms": 259.69858822732544,
+      "efficiency": 4.4377904680162095,
+      "cost_savings": -42.400694444444454
+    },
+    "lfm2-1.2b-router": {
+      "quality": 70.0,
+      "avg_total_cost_mb": 1647.6,
+      "avg_model_size_mb": 925.6,
+      "avg_routing_cost_mb": 722.0,
+      "avg_speed_ms": 210.66695101981387,
+      "efficiency": 4.248604030104394,
+      "cost_savings": -14.41666666666666
+    },
+    "always_largest": {
+      "quality": 100.0,
+      "avg_total_cost_mb": 1440.0,
+      "avg_model_size_mb": 1440.0,
+      "avg_routing_cost_mb": 0.0,
+      "avg_speed_ms": 0,
+      "efficiency": 6.944444444444445,
+      "cost_savings": 0.0
+    },
+    "always_smallest": {
+      "quality": 20.0,
+      "avg_total_cost_mb": 172.0,
+      "avg_model_size_mb": 172.0,
+      "avg_routing_cost_mb": 0.0,
+      "avg_speed_ms": 0,
+      "efficiency": 11.627906976744185,
+      "cost_savings": 88.05555555555556
+    },
+    "optimal": {
+      "quality": 100.0,
+      "avg_total_cost_mb": 761.8,
+      "avg_model_size_mb": 761.8,
+      "avg_routing_cost_mb": 0.0,
+      "avg_speed_ms": 0,
+      "efficiency": 13.126804935678656,
+      "cost_savings": 47.09722222222222
+    }
+  },
+  "samples": 100,
+  "device": "cuda"
+}

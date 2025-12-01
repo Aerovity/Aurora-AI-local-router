@@ -19,11 +19,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'sdks', 'python'))
 
 # Optional imports
 try:
-    from anthropic import Anthropic
-    HAS_ANTHROPIC = True
+    from openai import OpenAI
+    HAS_OPENAI = True
 except ImportError:
-    HAS_ANTHROPIC = False
-    print("⚠️  anthropic not installed. Install with: pip install anthropic")
+    HAS_OPENAI = False
+    print("⚠️  openai not installed. Install with: pip install openai")
 
 try:
     import google.generativeai as genai
@@ -31,6 +31,9 @@ try:
 except ImportError:
     HAS_GEMINI = False
     print("⚠️  google-generativeai not installed. Install with: pip install google-generativeai")
+
+# LLMAdaptive.uk configuration (OpenAI-compatible proxy for Claude)
+LLMADAPTIVE_BASE_URL = "https://api.llmadaptive.uk/v1"
 
 try:
     from datasets import load_dataset
@@ -90,8 +93,8 @@ def load_mmlu_samples(n_samples: int = 200) -> List[Dict]:
     return samples[:n_samples]
 
 
-def route_with_claude_opus(prompt: str, client: Anthropic) -> str:
-    """Use Claude Opus 4.5 to select best model (ground truth)."""
+def route_with_claude_opus(prompt: str, client: OpenAI) -> str:
+    """Use Claude Opus 4.5 via LLMAdaptive to select best model (ground truth)."""
     model_list = "\n".join([f"- {m['model_id']} ({m['size_mb']}MB)" for m in CACTUS_MODELS])
 
     system_prompt = f"""You are a routing expert. Given a user prompt, select the SMALLEST model that can handle it well.
@@ -108,15 +111,17 @@ Rules:
 Respond with ONLY the model_id, nothing else."""
 
     try:
-        response = client.messages.create(
-            model="claude-opus-4-20250514",
+        response = client.chat.completions.create(
+            model="anthropic/claude-sonnet-4-5",
             max_tokens=50,
             temperature=0,
-            system=system_prompt,
-            messages=[{"role": "user", "content": f"Select best model for: {prompt}"}]
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Select best model for: {prompt}"}
+            ]
         )
 
-        selected = response.content[0].text.strip()
+        selected = response.choices[0].message.content.strip()
         # Extract model_id if it's in the response
         for m in CACTUS_MODELS:
             if m['model_id'] in selected:
@@ -202,8 +207,8 @@ def run_benchmark(n_samples: int = 100):
     print()
 
     # Check dependencies
-    if not HAS_ANTHROPIC or not ANTHROPIC_API_KEY:
-        print("❌ Claude Opus not available (need anthropic library + API key)")
+    if not HAS_OPENAI or not ANTHROPIC_API_KEY:
+        print("❌ Claude not available (need openai library + LLMAdaptive API key)")
         return
 
     if not HAS_DATASETS:
@@ -221,16 +226,19 @@ def run_benchmark(n_samples: int = 100):
     )
     print("  ✅ AuroraAI Router loaded")
 
-    # Initialize Claude
-    claude_client = Anthropic(api_key=ANTHROPIC_API_KEY)
-    print("  ✅ Claude Opus 4.5 initialized")
+    # Initialize Claude via LLMAdaptive
+    claude_client = OpenAI(
+        api_key=ANTHROPIC_API_KEY,
+        base_url=LLMADAPTIVE_BASE_URL
+    )
+    print("  ✅ Claude Sonnet 4 initialized (via LLMAdaptive)")
 
     # Initialize Gemini (optional)
     gemini_model = None
     if HAS_GEMINI and GEMINI_API_KEY:
         genai.configure(api_key=GEMINI_API_KEY)
-        gemini_model = genai.GenerativeModel('gemini-pro')
-        print("  ✅ Gemini Pro initialized")
+        gemini_model = genai.GenerativeModel('gemini-2.0-flash')
+        print("  ✅ Gemini 2.0 Flash initialized")
 
     # Load test data
     samples = load_mmlu_samples(n_samples)

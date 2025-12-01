@@ -1,0 +1,43 @@
+{
+  "metrics": {
+    "aurora_router": {
+      "success_rate": 42.0,
+      "failure_rate": 58.0,
+      "avg_size_mb": 524.95,
+      "avg_routing_ms": 29.778920999524416,
+      "efficiency_score": 8.000761977331173,
+      "cost_savings": 63.545138888888886,
+      "total_samples": 100
+    },
+    "always_largest": {
+      "success_rate": 100.0,
+      "failure_rate": 0.0,
+      "avg_size_mb": 1440.0,
+      "avg_routing_ms": 0,
+      "efficiency_score": 6.944444444444445,
+      "cost_savings": 0.0,
+      "total_samples": 100
+    },
+    "always_smallest": {
+      "success_rate": 20.0,
+      "failure_rate": 80.0,
+      "avg_size_mb": 172.0,
+      "avg_routing_ms": 0,
+      "efficiency_score": 11.627906976744185,
+      "cost_savings": 88.05555555555556,
+      "total_samples": 100
+    },
+    "optimal": {
+      "success_rate": 100.0,
+      "failure_rate": 0.0,
+      "avg_size_mb": 761.8,
+      "avg_routing_ms": 0,
+      "efficiency_score": 13.126804935678656,
+      "cost_savings": 47.09722222222222,
+      "total_samples": 100
+    }
+  },
+  "samples": 100,
+  "device": "cuda",
+  "timestamp": "2025-12-01 19:27:11"
+}
