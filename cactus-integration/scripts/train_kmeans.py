@@ -7,8 +7,16 @@ KMeans is better for routing (no noise - every query gets assigned).
 import argparse
 import json
 import os
+import sys
 import numpy as np
 from datetime import datetime
+
+# Fix Windows encoding
+if sys.platform == 'win32':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except:
+        pass
 
 def main():
     parser = argparse.ArgumentParser()
