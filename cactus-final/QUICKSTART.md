@@ -5,17 +5,20 @@
 You can test the pipeline structure using mock embeddings:
 
 ```bash
-# 1. Install dependencies (mock mode)
-pip install datasets numpy pandas scikit-learn hdbscan tqdm sentence-transformers
+# 1. Install dependencies with uv
+uv sync
 
-# 2. Test bindings (will show "not available" - that's expected)
-python bindings/test_bindings.py
+# 2. Install mock embeddings support
+uv sync --extra mock
 
-# 3. View model configuration
-python training/config.py
+# 3. Test bindings (will show "not available" - that's expected)
+uv run python bindings/test_bindings.py
 
-# 4. Generate test profile with mock embeddings
-python training/generate_profile.py \
+# 4. View model configuration
+uv run python training/config.py
+
+# 5. Generate test profile with mock embeddings
+uv run python training/generate_profile.py \
     --mock-embeddings \
     --output profiles/test_profile.json
 ```
@@ -29,12 +32,15 @@ python training/generate_profile.py \
 ### One-Time Setup
 
 ```bash
-# 1. Run setup script
-cd auroraai-router/cactus-final
-chmod +x setup.sh
-./setup.sh
+# 1. Build Cactus library
+cd cactus
+./apple/build.sh
 
-# 2. Download embedding model
+# 2. Install Python dependencies
+cd ../auroraai-router/cactus-final
+uv sync
+
+# 3. Download embedding model
 cd ../../cactus
 ./cli/cactus download LiquidAI/LFM2-350M
 
@@ -47,7 +53,7 @@ cd ../../cactus
 cd auroraai-router/cactus-final
 
 # Generate profile with real Cactus embeddings
-python training/generate_profile.py \
+uv run python training/generate_profile.py \
     --use-cactus \
     --model-path ../../cactus/weights/LFM2-350M/model.gguf \
     --output profiles/production_profile.json
@@ -65,7 +71,7 @@ After generation, check the profile:
 
 ```bash
 # View profile metadata
-python -c "import json; p=json.load(open('profiles/production_profile.json')); print(json.dumps(p['metadata'], indent=2))"
+uv run python -c "import json; p=json.load(open('profiles/production_profile.json')); print(json.dumps(p['metadata'], indent=2))"
 
 # Check profile size
 ls -lh profiles/production_profile.json

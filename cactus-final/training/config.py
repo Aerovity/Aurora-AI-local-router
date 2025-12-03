@@ -248,9 +248,9 @@ if __name__ == "__main__":
     print_models()
 
     # Print embedding models
-    print("\n🔢 Models with Embedding Support:")
+    print("\nModels with Embedding Support:")
     for model_id in get_embedding_model_ids():
         model = get_model_by_id(model_id)
         print(f"  - {model_id:<20} ({model['size_mb']}MB)")
 
-    print(f"\n✅ Default embedding model: {DEFAULT_EMBEDDING_MODEL}")
+    print(f"\nDefault embedding model: {DEFAULT_EMBEDDING_MODEL}")

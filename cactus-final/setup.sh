@@ -23,10 +23,25 @@ if [[ "$(uname)" != "Darwin" ]]; then
     echo ""
 fi
 
-# 1. Install Python dependencies
+# 1. Check if uv is installed
 echo ""
-echo "📦 Step 1: Installing Python dependencies..."
-pip install -r requirements.txt
+echo "📦 Step 1: Checking for uv..."
+if command -v uv &> /dev/null; then
+    echo "✅ uv is installed"
+
+    echo ""
+    echo "📦 Installing Python dependencies with uv..."
+    uv sync
+else
+    echo "⚠️  uv not found, falling back to pip"
+    echo ""
+    echo "📦 Installing Python dependencies with pip..."
+    pip install -r requirements.txt
+
+    echo ""
+    echo "💡 Consider installing uv for faster dependency management:"
+    echo "   curl -LsSf https://astral.sh/uv/install.sh | sh"
+fi
 
 # 2. Check if Cactus library exists
 echo ""
@@ -63,7 +78,11 @@ fi
 # 3. Test bindings
 echo ""
 echo "🧪 Step 3: Testing Cactus bindings..."
-python bindings/test_bindings.py
+if command -v uv &> /dev/null; then
+    uv run python bindings/test_bindings.py
+else
+    python bindings/test_bindings.py
+fi
 
 # 4. Check for models
 echo ""
@@ -95,7 +114,11 @@ echo "     cd $CACTUS_DIR"
 echo "     ./cli/cactus download LiquidAI/LFM2-350M"
 echo ""
 echo "  2. Generate production profile:"
-echo "     python training/generate_profile.py \\"
+if command -v uv &> /dev/null; then
+    echo "     uv run python training/generate_profile.py \\"
+else
+    echo "     python training/generate_profile.py \\"
+fi
 echo "       --use-cactus \\"
 echo "       --model-path $CACTUS_DIR/weights/LFM2-350M/model.gguf \\"
 echo "       --output profiles/production_profile.json"

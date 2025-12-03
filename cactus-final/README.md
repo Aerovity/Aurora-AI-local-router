@@ -84,14 +84,20 @@ You can test the project structure on x86 using HuggingFace embeddings:
 ```bash
 cd auroraai-router/cactus-final
 
-# Install dependencies
+# Install dependencies with uv (recommended)
+uv sync
+
+# Or with pip
 pip install -r requirements.txt
 
+# For mock embeddings support (optional)
+uv sync --extra mock
+
 # Test bindings (will show "not available" on x86)
-python bindings/test_bindings.py
+uv run python bindings/test_bindings.py
 
 # Generate profile with mock embeddings (for testing)
-python training/generate_profile.py \
+uv run python training/generate_profile.py \
     --mock-embeddings \
     --output profiles/test_profile.json
 ```
@@ -115,9 +121,23 @@ cd ../../cactus
 ls -lh build/cactus/libcactus.dylib
 ```
 
-#### 2. Download Embedding Model
+#### 2. Install Python Dependencies
 
 ```bash
+cd ../auroraai-router/cactus-final
+
+# Install with uv (recommended)
+uv sync
+
+# Or with pip
+pip install -e .
+```
+
+#### 3. Download Embedding Model
+
+```bash
+cd ../../cactus
+
 # Use Cactus CLI to download embedding model
 # Recommended: LFM2-350M (233MB, has embed capability)
 ./cli/cactus download LiquidAI/LFM2-350M
@@ -128,30 +148,30 @@ ls -lh build/cactus/libcactus.dylib
 # Models are saved to: weights/
 ```
 
-#### 3. Test Bindings
+#### 4. Test Bindings
 
 ```bash
 cd ../auroraai-router/cactus-final
 
 # Test if Cactus library loads correctly
-python bindings/test_bindings.py
+uv run python bindings/test_bindings.py
 
 # Test with actual model
-python bindings/test_bindings.py \
+uv run python bindings/test_bindings.py \
     --model ../../cactus/weights/LFM2-350M/model.gguf
 ```
 
-#### 4. Generate Production Profile
+#### 5. Generate Production Profile
 
 ```bash
 # Full training with real Cactus embeddings
-python training/generate_profile.py \
+uv run python training/generate_profile.py \
     --use-cactus \
     --model-path ../../cactus/weights/LFM2-350M/model.gguf \
     --output profiles/production_profile.json
 
 # With custom library path
-python training/generate_profile.py \
+uv run python training/generate_profile.py \
     --use-cactus \
     --model-path ../../cactus/weights/LFM2-350M/model.gguf \
     --lib-path ../../cactus/build/cactus/libcactus.dylib \
@@ -255,24 +275,28 @@ Generated profiles are JSON files (~100KB) with this structure:
 
 ```bash
 # Check if Cactus is available
-python bindings/test_bindings.py
+uv run python bindings/test_bindings.py
 
 # Test with model (Mac only)
-python bindings/test_bindings.py --model path/to/model.gguf
+uv run python bindings/test_bindings.py --model path/to/model.gguf
 ```
 
 ### 2. View Model Configuration
 
 ```bash
 # Print all 12 models
-python training/config.py
+uv run python training/config.py
 ```
 
 ### 3. Test Profile Generation (Mock)
 
 ```bash
 # Quick test on x86 with mock embeddings
-python training/generate_profile.py \
+# First install mock dependencies
+uv sync --extra mock
+
+# Then run
+uv run python training/generate_profile.py \
     --mock-embeddings \
     --output profiles/test_profile.json
 ```
@@ -321,17 +345,31 @@ Once you have a production profile, you can:
 
 ## 🛠️ Dependencies
 
-```txt
-# Core dependencies
-datasets          # MMLU dataset loading
-numpy             # Numerical operations
-pandas            # Data manipulation
-scikit-learn      # KMeans clustering
-hdbscan           # HDBSCAN clustering
-tqdm              # Progress bars
+Managed via `pyproject.toml` with uv:
 
-# Optional (for mock mode on x86)
-sentence-transformers  # Mock embeddings only
+**Core dependencies:**
+- `datasets` - MMLU dataset loading
+- `numpy` - Numerical operations
+- `pandas` - Data manipulation
+- `scikit-learn` - KMeans clustering
+- `hdbscan` - HDBSCAN clustering
+- `tqdm` - Progress bars
+
+**Optional extras:**
+- `[mock]` - sentence-transformers for x86 testing
+- `[viz]` - matplotlib, plotly, umap for visualizations
+- `[dev]` - pytest, black, ruff for development
+
+**Install:**
+```bash
+# Core dependencies only
+uv sync
+
+# With mock embeddings support
+uv sync --extra mock
+
+# With all extras
+uv sync --all-extras
 ```
 
 ---
