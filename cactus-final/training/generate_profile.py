@@ -16,7 +16,7 @@ Usage:
     # On Mac (real Cactus embeddings)
     python training/generate_profile.py \
         --use-cactus \
-        --model-path models/lfm2-350m-q8.gguf \
+        --model-path ../cactus/weights/lfm2-350m \
         --output profiles/production_profile.json
 """
 
@@ -160,7 +160,7 @@ def extract_embeddings_cactus(
 
     Args:
         texts: List of text strings
-        model_path: Path to Cactus GGUF model
+        model_path: Path to Cactus model directory (contains config.txt and weights)
         lib_path: Optional path to libcactus library
 
     Returns:
@@ -228,7 +228,8 @@ def cluster_embeddings(
             kmeans = KMeans(
                 n_clusters=k,
                 random_state=CLUSTERING_CONFIG['random_state'],
-                n_init=10
+                n_init=10,
+                max_iter=300,
             )
             labels = kmeans.fit_predict(embeddings)
             sil = silhouette_score(embeddings, labels, metric=metric)
@@ -238,7 +239,8 @@ def cluster_embeddings(
             'k': k,
             'silhouette': sil,
             'labels': labels,
-            'centroids': kmeans.cluster_centers_
+            'centroids': kmeans.cluster_centers_,
+            'n_iter': int(getattr(kmeans, "n_iter_", 0)),
         })
         print(f"  K={k:2d}: silhouette={sil:.4f}")
 
@@ -280,7 +282,8 @@ def cluster_embeddings(
             'labels': labels,
             'centroids': centroids,
             'params': params,
-            'noise': n_noise
+            'noise': n_noise,
+            'n_iter': 0,
         })
 
         print(f"  mcs={mcs}, ms={ms:2d}: K={n_clusters:2d}, noise={n_noise:4d}, sil={sil:.4f}")
@@ -299,6 +302,8 @@ def main():
     parser = argparse.ArgumentParser(
         description="Generate AuroraAI Router profile with Cactus embeddings"
     )
+    project_root = Path(__file__).resolve().parent.parent
+    default_model_path = (project_root / "../cactus/weights/lfm2-350m").resolve()
 
     # Embedding mode
     mode_group = parser.add_mutually_exclusive_group(required=True)
@@ -317,7 +322,8 @@ def main():
     parser.add_argument(
         '--model-path',
         type=str,
-        help='Path to Cactus GGUF model (required with --use-cactus)'
+        default=str(default_model_path),
+        help=f'Path to Cactus model directory (default: {default_model_path})'
     )
     parser.add_argument(
         '--lib-path',
@@ -357,8 +363,14 @@ def main():
     args = parser.parse_args()
 
     # Validate arguments
-    if args.use_cactus and not args.model_path:
-        parser.error("--model-path is required when using --use-cactus")
+    if args.use_cactus:
+        model_path = Path(args.model_path)
+        if not model_path.exists():
+            parser.error(
+                f"--model-path does not exist: {model_path}\n"
+                "Expected a Cactus model directory containing config.txt and weights "
+                "(e.g., ../cactus/weights/lfm2-350m)."
+            )
 
     # Set random seed
     set_random_seed(TRAINING_CONFIG['random_seed'])
@@ -432,31 +444,44 @@ def main():
 
     unique_clusters = sorted(set(labels) - {-1})
 
+    clustering_cfg = {
+        'max_iter': 300,
+        'random_state': CLUSTERING_CONFIG['random_state'],
+        'n_init': 10,
+        'algorithm': best_config['algo'].lower(),
+        'normalization_strategy': 'l2',
+        'n_iter': int(best_config.get('n_iter') or 0),
+    }
+
+    routing_cfg = {
+        'lambda_min': 0.0,
+        'lambda_max': 2.0,
+        'default_cost_preference': 0.5,
+    }
+
+    models_with_errors = []
+    for model in CACTUS_MODELS:
+        model_id = model['model_id']
+        models_with_errors.append({
+            **model,
+            'error_rates': error_rates[model_id],
+        })
+
     profile = {
-        'version': PROFILE_CONFIG['version'],
-        'metadata': {
-            'n_clusters': len(unique_clusters),
-            'feature_dim': embeddings.shape[1],
-            'embedding_model': embedding_model if args.use_cactus else "bge-base-en-v1.5 (MOCK)",
-            'lambda_min': 0.0,
-            'lambda_max': 2.0,
-            'default_cost_preference': 0.5,
-            'silhouette_score': float(best_config['silhouette']),
-            'clustering_algorithm': best_config['algo'],
-            'target': 'cactus_compute',
-            'dataset': 'mmlu',
-            'n_samples': len(samples),
-            'topics': MMLU_CONFIG['topics'],
-            'is_mock': not args.use_cactus,  # Flag to indicate if embeddings are mock
-        },
         'cluster_centers': {
             'n_clusters': len(unique_clusters),
             'feature_dim': centroids.shape[1],
             'cluster_centers': centroids.astype(np.float16).tolist(),
-            'dtype': 'float16'
         },
-        'llm_profiles': error_rates,
-        'models': CACTUS_MODELS
+        'models': models_with_errors,
+        'metadata': {
+            'n_clusters': len(unique_clusters),
+            'embedding_model': embedding_model if args.use_cactus else "bge-base-en-v1.5 (MOCK)",
+            'silhouette_score': float(best_config['silhouette']),
+            'allow_trust_remote_code': False,
+            'clustering': clustering_cfg,
+            'routing': routing_cfg,
+        },
     }
 
     # Save profile

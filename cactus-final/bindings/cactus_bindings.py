@@ -97,11 +97,26 @@ class CactusModel:
         if self.lib_path:
             search_paths.append(self.lib_path)
 
-        # Add default search paths
-        project_root = Path(__file__).parent.parent.parent.parent
+        # Add default search paths (repo root is three levels up from this file)
+        project_root = Path(__file__).resolve().parent.parent.parent
+        cactus_repo = project_root / "cactus"
+
+        # macOS xcframework build output (contains a Mach-O shared library named "cactus")
+        xcframework_lib = (
+            cactus_repo
+            / "apple"
+            / "cactus-macos.xcframework"
+            / "macos-arm64"
+            / "cactus.framework"
+            / "Versions"
+            / "A"
+            / "cactus"
+        )
+
         search_paths.extend([
-            project_root / "cactus" / "build" / "cactus" / lib_name,
-            project_root / "cactus" / "build" / lib_name,
+            cactus_repo / "build" / "cactus" / lib_name,
+            cactus_repo / "build" / lib_name,
+            xcframework_lib,
             Path.cwd() / lib_name,
             Path(f"./{lib_name}"),
         ])
@@ -197,21 +212,22 @@ class CactusModel:
         text_bytes = text.encode('utf-8')
         embeddings_buffer = (ctypes.c_float * max_dim)()
         embedding_dim = ctypes.c_size_t(0)
+        buffer_size = ctypes.sizeof(ctypes.c_float) * max_dim
 
         # Call cactus_embed
         result = self._lib.cactus_embed(
             self._model_ptr,
             text_bytes,
             embeddings_buffer,
-            max_dim,
+            buffer_size,
             ctypes.byref(embedding_dim)
         )
 
-        if result != 0:
+        if result < 0:
             raise CactusError(f"Failed to generate embeddings. Error code: {result}")
 
-        # Convert to numpy array
-        dim = embedding_dim.value
+        # If the C side didn't populate embedding_dim for some reason, fall back to result
+        dim = embedding_dim.value or result
         if dim == 0 or dim > max_dim:
             raise CactusError(f"Invalid embedding dimension: {dim}")
 

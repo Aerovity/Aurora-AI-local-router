@@ -1,151 +1,52 @@
-# Cactus Integration for AuroraAI Router Training
+# Cactus Integration (ARM/Graviton)
 
-This package allows you to train AuroraAI Router profiles using **real Cactus embeddings** on AWS Graviton (ARM64) instances.
+Train router profiles with real Cactus embeddings on ARM (AWS Graviton or local Apple Silicon).
 
-## Why This Exists
+## Prereqs
+- ARM Linux (Ubuntu 24.04 recommended) or macOS ARM
+- Python 3.10+, build essentials (cmake, clang), git
+- Cactus repo in `~/cactus` (cloned by setup script)
 
-The AuroraAI Router uses k-means cluster centers to route queries to appropriate models. For routing to work correctly at runtime, the cluster centers must be generated using the **same embedding function** that will be used on mobile devices.
-
-- **HuggingFace embeddings**: FP32 precision, x86/ARM
-- **Cactus embeddings**: FP16/INT8 quantized, ARM-only, optimized for mobile
-
-Using HuggingFace to generate cluster centers would result in mismatched embeddings at runtime, causing incorrect routing decisions.
-
-## Requirements
-
-- **AWS Account** with ~$5 credits (training takes ~1-2 hours)
-- Cactus-compatible embedding model (LFM2-350M recommended)
-
-## Quick Start
-
-### 1. Launch AWS Graviton Instance
-
-1. Go to AWS Console → EC2 → Launch Instance
-2. Select **Ubuntu 24.04 LTS (ARM64)**
-3. Instance type: **t4g.medium** (~$0.03/hr, 2 vCPU, 4GB RAM)
-4. Storage: 30GB gp3
-5. Security group: Allow SSH (port 22)
-6. Launch and download key pair
-
-### 2. Connect and Setup
-
+## Fast path on AWS Graviton
 ```bash
-# SSH into your instance
-ssh -i your-key.pem ubuntu@<instance-ip>
-
-# Clone this repo (or upload via scp)
+# Launch t4g.medium (Ubuntu 24.04), SSH in, then:
 git clone https://github.com/AuroraAI/auroraai-router.git
 cd auroraai-router/cactus-integration
 
-# Run setup (installs deps, clones Cactus, builds shared lib)
-chmod +x aws/setup_instance.sh
-./aws/setup_instance.sh
-```
+# Install deps, clone/build Cactus, set LD paths
+chmod +x aws/setup_instance.sh && ./aws/setup_instance.sh
 
-### 3. Download Embedding Model
+# Download embedding model (LFM2-350M, quantized)
+chmod +x scripts/download_model.sh && ./scripts/download_model.sh
 
-```bash
-# Download LFM2-350M in GGUF format
-chmod +x scripts/download_model.sh
-./scripts/download_model.sh
-```
-
-### 4. Test Embeddings
-
-```bash
-# Quick test to verify Cactus embeddings work
+# Quick embedding check
 python3 scripts/test_embeddings.py
-```
 
-### 5. Train Profile
-
-```bash
-# Full training run (takes 30-60 minutes)
+# Train profile (adjust samples/output as needed)
 python3 scripts/train_profile.py \
-    --model models/lfm2-350m-q8.gguf \
-    --output profiles/production_profile.json \
-    --n-samples 5000
-
-# For quick test run
-python3 scripts/train_profile.py \
-    --model models/lfm2-350m-q8.gguf \
-    --output profiles/test_profile.json \
-    --n-samples 500
+  --model models/lfm2-350m-q8.gguf \
+  --output profiles/production_profile.json \
+  --n-samples 5000
 ```
 
-### 6. Download Profile
-
+Copy the profile back to your machine:
 ```bash
-# On your local machine
-scp -i your-key.pem ubuntu@<instance-ip>:~/auroraai-router/cactus-integration/profiles/production_profile.json .
+scp -i <key.pem> ubuntu@<ip>:~/auroraai-router/cactus-integration/profiles/production_profile.json .
 ```
 
-### 7. Terminate Instance
+## Validation (recommended)
+- Quick structure/cluster sanity: `python3 scripts/quick_validate.py --profile profiles/production_profile.json`
+- HF vs Cactus embedding match (needs GGUF model + built libcactus):  
+  `python3 scripts/validate_embedding_consistency.py --profile profiles/production_profile.json --cactus-model models/lfm2-350m-q8.gguf`
+- If HDBSCAN shows high noise, rerun `train_profile.py` with KMeans (see script help) or tune cluster params.
 
-Don't forget to terminate your EC2 instance to stop charges!
-
-## Profile Format
-
-The generated profile is a JSON file compatible with the AuroraAI Router SDK:
-
-```json
-{
-  "version": "2.0",
-  "embedding_model": "lfm2-350m-q8",
-  "embedding_dim": 1024,
-  "n_clusters": 12,
-  "cluster_centers": [[...], [...], ...],
-  "cluster_labels": ["reasoning", "creative", ...],
-  "cluster_stats": {...},
-  "training_info": {...}
-}
-```
-
-## Files
-
-```
-cactus-integration/
-├── README.md                    # This file
-├── aws/
-│   ├── setup_instance.sh        # Ubuntu setup script
-│   └── build_shared_lib.sh      # Builds libcactus.so
-├── scripts/
-│   ├── cactus_wrapper.py        # Python bindings for Cactus FFI
-│   ├── train_profile.py         # Main training script
-│   ├── test_embeddings.py       # Verify embeddings work
-│   └── download_model.sh        # Download embedding model
-├── models/                      # GGUF models go here
-└── profiles/                    # Generated profiles
-```
+## Layout
+- `aws/` — instance setup + shared library build scripts
+- `scripts/` — Cactus FFI wrapper, training, validation, model download
+- `models/` — place GGUF models
+- `profiles/` — generated router profiles
 
 ## Troubleshooting
-
-### "Library not found" error
-```bash
-# Rebuild shared library
-cd ~/cactus && ./aws/build_shared_lib.sh
-export LD_LIBRARY_PATH=~/cactus/build/cactus:$LD_LIBRARY_PATH
-```
-
-### Out of memory
-Use a larger instance (t4g.large = 8GB RAM) or reduce batch size:
-```bash
-python3 scripts/train_profile.py --batch-size 16
-```
-
-### Slow embedding generation
-This is expected - Cactus on CPU is slower than GPU. The t4g.medium processes ~10-20 embeddings/second.
-
-## Cost Estimate
-
-| Instance | vCPU | RAM | Cost/hr | 5000 samples |
-|----------|------|-----|---------|--------------|
-| t4g.micro | 2 | 1GB | $0.008 | ~$0.10 |
-| t4g.medium | 2 | 4GB | $0.034 | ~$0.50 |
-| t4g.large | 2 | 8GB | $0.067 | ~$1.00 |
-
-Recommended: t4g.medium for ~$0.50 total cost.
-
-## License
-
-MIT License - Same as AuroraAI Router
+- Library errors: rebuild via `aws/build_shared_lib.sh` and export `LD_LIBRARY_PATH=~/cactus/build/cactus:$LD_LIBRARY_PATH`.
+- Slow/low-memory: drop `--n-samples` or use a larger instance (t4g.large).
+- Embedding mismatch: rerun validation; ensure training and runtime use the same GGUF and preprocessing.
