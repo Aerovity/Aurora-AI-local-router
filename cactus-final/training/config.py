@@ -148,27 +148,27 @@ EMBEDDING_MODELS = [m for m in CACTUS_MODELS if m['has_embed']]
 # Recommended embedding model (good balance of size and quality)
 DEFAULT_EMBEDDING_MODEL = 'lfm2-350m'
 
-# MMLU dataset configuration
+# Mobile-MMLU dataset configuration
 MMLU_CONFIG = {
-    'dataset_name': 'cais/mmlu',
-    'subset': 'all',
+    'dataset_name': 'MBZUAI-LLM/Mobile-MMLU',
+    'subset': None,  # Mobile-MMLU uses topic name as config, not subset
     'split': 'test',
     'topics': [
-        'abstract_algebra',        # Math
-        'anatomy',                 # Medical
-        'world_religions',         # Religion
-        'computer_security',       # CS
-        'astronomy',               # Space/Physics
-        'international_law',       # Law
-        'marketing',               # Business
-        'high_school_geography',   # Geography
-        'philosophy',              # Philosophy
-        'electrical_engineering',  # Engineering
-        'high_school_physics',     # Physics
-        'econometrics',            # Economics
-        'moral_scenarios',         # Ethics
-        'professional_medicine',   # Medicine
-        'virology',                # Biology
+        'elementary_mathematics',           # Math
+        'high_school_mathematics',          # Advanced Math
+        'basic_statistics',                 # Statistics
+        'medical_and_health_knowledge',     # Medical
+        'mental_health',                    # Mental Health
+        'cybersecurity',                    # CS Security
+        'digital_literacy',                 # CS Literacy
+        'business_management',              # Business
+        'marketing',                        # Marketing
+        'accounting',                       # Finance
+        'geography',                        # Geography
+        'ethics',                           # Ethics
+        'personal_finance',                 # Finance
+        'physical_fitness',                 # Health/Fitness
+        'automotive_care',                  # Practical Skills
     ],
     'samples_per_topic': 150,  # ~2250 samples total
 }

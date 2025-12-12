@@ -61,17 +61,17 @@ def load_mmlu_dataset(
     samples_per_topic: int = 150
 ) -> Tuple[List[Dict], pd.DataFrame]:
     """
-    Load MMLU dataset samples.
+    Load Mobile-MMLU dataset samples.
 
     Args:
-        topics: List of MMLU topics to sample from
+        topics: List of Mobile-MMLU topics to sample from
         samples_per_topic: Number of samples per topic
 
     Returns:
         Tuple of (samples_list, dataframe)
     """
     print("\n" + "=" * 80)
-    print("📚 Loading MMLU Dataset")
+    print("📚 Loading Mobile-MMLU Dataset")
     print("=" * 80)
 
     try:
@@ -81,15 +81,26 @@ def load_mmlu_dataset(
             "datasets library not found. Install with: pip install datasets"
         )
 
-    with Timer("Loading MMLU"):
-        mmlu = load_dataset(MMLU_CONFIG['dataset_name'], MMLU_CONFIG['subset'])
-
     # Sample from each topic
     samples = []
     for topic in topics:
-        topic_samples = [x for x in mmlu[MMLU_CONFIG['split']] if x['subject'] == topic]
-        n_to_sample = min(samples_per_topic, len(topic_samples))
-        samples.extend(random.sample(topic_samples, n_to_sample))
+        with Timer(f"Loading {topic}", verbose=False):
+            # Mobile-MMLU uses topic name as config parameter
+            topic_dataset = load_dataset(
+                MMLU_CONFIG['dataset_name'],
+                name=topic,
+                split=MMLU_CONFIG['split']
+            )
+
+            topic_samples = list(topic_dataset)
+            n_to_sample = min(samples_per_topic, len(topic_samples))
+            sampled = random.sample(topic_samples, n_to_sample)
+
+            # Add subject field for compatibility
+            for s in sampled:
+                s['subject'] = topic
+
+            samples.extend(sampled)
 
     random.shuffle(samples)
 
@@ -100,11 +111,12 @@ def load_mmlu_dataset(
         print(f"  {topic:30s}: {count:3d} samples")
 
     # Create dataframe
+    # Mobile-MMLU uses 'Question' instead of 'question' and has options A, B, C, D
     df = pd.DataFrame({
-        'question': [s['question'] for s in samples],
+        'question': [s.get('Question', s.get('question', '')) for s in samples],
         'subject': [s['subject'] for s in samples],
-        'choices': [s['choices'] for s in samples],
-        'answer': [s['answer'] for s in samples],
+        'choices': [[s.get('A', ''), s.get('B', ''), s.get('C', ''), s.get('D', '')] for s in samples],
+        'answer': [s.get('answer', s.get('Answer', 0)) for s in samples],
     })
 
     return samples, df
@@ -381,7 +393,8 @@ def main():
         samples_per_topic=MMLU_CONFIG['samples_per_topic']
     )
 
-    texts = [s['question'] for s in samples]
+    # Mobile-MMLU uses 'Question' field
+    texts = [s.get('Question', s.get('question', '')) for s in samples]
 
     # Extract embeddings
     print("\n" + "=" * 80)

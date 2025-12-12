@@ -3,7 +3,8 @@
 Generate router profiles using the Cactus C library. Supports real Cactus embeddings on ARM/macOS and a mock mode on x86 for structure testing.
 
 ## What it does
-- Loads ~2k MMLU samples, builds embeddings, clusters (KMeans/HDBSCAN), simulates per-cluster error rates, and writes a profile JSON.
+- Loads ~2k Mobile-MMLU samples, builds embeddings, clusters (KMeans/HDBSCAN), simulates per-cluster error rates, and writes a profile JSON.
+- Mobile-MMLU provides practical, mobile-focused knowledge assessment across 120+ topics including digital literacy, personal finance, cybersecurity, and everyday skills.
 - Two modes: `--use-cactus` (real embeddings) or `--mock-embeddings` (sentence-transformers).
 - C library lookup checks the xcframework output at `../cactus/apple/cactus-macos.xcframework/.../cactus` by default; override with `--lib-path` if needed.
 
